@@ -32,29 +32,33 @@ def preprocess_image(image):
     # 1. Convert the uploaded PIL image to a NumPy array.
     image_array = np.array(image)
 
-    # 2. Ensure the image is in a 3-channel BGR format for OpenCV.
-    # Check if the image has an alpha channel (4 channels, e.g., PNG)
-    if image_array.shape[2] == 4:
-        image_array = cv2.cvtColor(image_array, cv2.COLOR_RGBA2BGR)
+    # 2. Handle different image formats before processing.
+    # First, check if the image is already grayscale (2 dimensions).
+    if image_array.ndim == 2:
+        # It's already grayscale, assign it directly.
+        gray_image = image_array
+    # Next, check if it has an alpha channel (4 channels).
+    elif image_array.shape[2] == 4:
+        # Convert from RGBA to RGB to drop the alpha channel.
+        rgb_image = cv2.cvtColor(image_array, cv2.COLOR_RGBA2RGB)
+        # Now convert from RGB to grayscale.
+        gray_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+    # Otherwise, assume it's a standard 3-channel RGB image.
     else:
-        # Convert from RGB (PIL default) to BGR (OpenCV default)
-        image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+        gray_image = cv2.cvtColor(image_array, cv2.COLOR_RGB2GRAY)
 
-    # 3. Convert the 3-channel image to grayscale.
-    gray_image = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
-
-    # 4. Resize the image to the model's expected size (28x28).
+    # 3. Resize the image to the model's expected size (28x28).
     resized_image = cv2.resize(gray_image, (28, 28))
 
-    # 5. Convert the 1-channel grayscale image back to a 3-channel image for the model.
+    # 4. Convert the 1-channel grayscale image back to a 3-channel image.
     # This step is necessary if your model was trained on 3-channel images.
     three_channel_image = cv2.cvtColor(resized_image, cv2.COLOR_GRAY2BGR)
 
-    # 6. Reshape for the model to add the batch dimension.
+    # 5. Reshape for the model to add the batch dimension.
     # The final shape will be (1, 28, 28, 3).
     reshaped_image = np.expand_dims(three_channel_image, axis=0)
 
-    # 7. Normalize the pixel values.
+    # 6. Normalize the pixel values.
     normalized_image = reshaped_image / 255.0
     
     return normalized_image
